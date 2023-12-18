@@ -1,115 +1,154 @@
 <!DOCTYPE html>
 <html>
-
 <head>
-    <title>Attendance Calendar</title>
-    <style>
-@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@500&display=swap');
-.present {
-    background-color: #4CAF50; /* Green */
-    color: #fff; /* White text */
-}
+  <title>Attendance Calendar</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400&display=swap');
 
-.absent {
-    background-color: #FF5252; /* Red */
-    color: #fff; /* White text */
-}
+    .present {
+      background-color: #c6efce; /* Green */
+      color: #257246; /* White text */
+    }
 
-.late {
-    background-color: #FFC107; /* Yellow */
-    color: #fff; /* White text */
-}
+    .absent {
+      background-color: #ffc7ce; /* Red */
+      color: #c83552; /* White text */
+    }
 
-.absence {
-    color: #FF5252; /* Red */
-}
+    .late {
+      background-color: #ffeb9c; /* Yellow */
+      color: #a56c34; /* White text */
+    }
 
-.attendance {
-    color: #4CAF50; /* Green */
-}
+    .absence {
+      color: #ffc7ce; /* Red */
+    }
 
-body {
-    font-family: 'Readex Pro', sans-serif;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    height: 100vh;
-    justify-content: center;
-}
+    .attendance {
+      color: #c6efce; /* Green */
+    }
 
-#calendarContainer {
-    border: 2px solid #fff;
-    border-radius: 10px; /* Add border radius to the calendar container */
-    box-sizing: border-box;
-    overflow: hidden;
-    width: 90%; /* Adjust the width to free up space on both sides */
-    max-width: 600px;
-}
+    body {
+      font-family: 'Readex Pro', sans-serif;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+      justify-content: center;
+    }
 
-table {
-    border-collapse: collapse;
-    width: 100%;
-}
+    #calendarContainer {
+      border: 2px solid #fff;
+      border-radius: 10px; /* Add border radius to the calendar container */
+      box-sizing: border-box;
+      overflow: hidden;
+      width: 90%; /* Adjust the width to free up space on both sides */
+      max-width: 600px;
+    }
 
-th, td {
-    border: 1px solid #fff;
-    border-width: 7px;
-    text-align: center;
-    padding: 0; /* Remove padding */
-    width: calc(100% / 7); /* Distribute the cells equally */
-    height: 135px; /* Set the height to create square cells */
-    position: relative;
-    border-radius: 25px; /* Add border radius to the cells */
-    font-size: 30px;
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #fff;
+      border-width: 7px;
+      text-align: center;
+      padding: 0; /* Remove padding */
+      width: calc(100% / 7); /* Distribute the cells equally */
+      height: 130px; /* Set the height to create square cells */
+      border-radius: 25%; /* Add border-radius to the cells */
+      font-size: 30px;
+    }
+
+    th {
+      background-color: #fff;
+      border-width: 2px; /* Increase border thickness for th elements */
+    }
+
+    th span, td span {
+      display: inline-block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    #status-buttons {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    #status-buttons button {
+      margin: 0 10px;
+    }
     
-}
+    #calendarHeader {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
 
-th {
-    background-color: #fff;
-    border-width: 2px; /* Increase border thickness for th elements */
-}
+    #year {
+      margin-right: 10px;
+      font-size: 28px;
+    }
 
-th span, td span {
-    display: inline-block;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-    </style>
+    #prevBtn, #nextBtn {
+        margin-right: 5px;
+        cursor: pointer;
+        font-size: 50px;
+        color: #333;
+        display: flex; /* Align icon and text in the same line */
+        align-items: center; /* Center vertically */
+        background: none;
+        border: none;
+        padding: 0;
+        outline: none;
+        }
+    .material-symbols-rounded {
+        font-size: inherit;
+        }
+  </style>
 </head>
 
 <body>
-    <h1>Attendance Calendar</h1>
+  <h1>Attendance Calendar</h1>
 
-    <label for="userIdInput">User ID:</label>
-    <input type="text" id="userIdInput">
-    <button id="loadDataBtn">Load Attendance Data</button>
+  <label for="userIdInput">User ID:</label>
+  <input type="text" id="userIdInput">
+  <button id="loadDataBtn">Load Attendance Data</button>
 
+  <div id="status-buttons">
     <button id="presenceBtn">Mark Presence</button>
     <button id="absenceBtn">Mark Absence</button>
     <button id="lateBtn">Mark Late</button>
-
-    <button id="prevBtn">Previous</button>
-    <button id="nextBtn">Next</button>
-    <p id="year"></p>
-    <table>
-        <thead>
-            <tr>
-                <th>Sun</th>
-                <th>Mon</th>
-                <th>Tue</th>
-                <th>Wed</th>
-                <th>Thu</th>
-                <th>Fri</th>
-                <th>Sat</th>
-            </tr>
-        </thead>
-        <tbody id="calendarBody">
-        </tbody>
-    </table>
+  </div>
+  <div id="calendarHeader">
+   
+    <button id="prevBtn"><i class="material-symbols-rounded">keyboard_arrow_left</i></button>
+     <p id="year"></p>
+     <button id="nextBtn"><i class="material-symbols-rounded">keyboard_arrow_right</i></button>
+</div>
+  <table>
+    <thead>
+      <tr>
+        <th>SUN</th>
+        <th>MON</th>
+        <th>TUE</th>
+        <th>WED</th>
+        <th>THU</th>
+        <th>FRI</th>
+        <th>SAT</th>
+      </tr>
+    </thead>
+    <tbody id="calendarBody">
+    </tbody>
+  </table>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-analytics.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
@@ -213,7 +252,7 @@ th span, td span {
 
             if (this.isSameDate(new Date(), new Date(this.year, this.month, date))) {
     // Change text color to blue for the current date
-    cell.style.color = "blue";
+    cell.style.color = "#fff";
 }
 
 
@@ -253,10 +292,11 @@ th span, td span {
         }
 
         function generateCalendar(year, month, userId, presenceDates, absenceDates, lateDates) {
-            const calendar = new Calendar(year, month, userId, presenceDates, absenceDates, lateDates);
-            document.getElementById('year').textContent = 'Year: ' + calendar.year;
-            calendar.generateCalendarBody();
-        }
+    const calendar = new Calendar(year, month, userId, presenceDates, absenceDates, lateDates);
+    document.getElementById('year').textContent = getMonthName(calendar.month) + ' ' + calendar.year;
+    calendar.generateCalendarBody();
+}
+
 
         function markAttendance(date, status) {
         const userId = userIdInput.value;
@@ -330,6 +370,13 @@ th span, td span {
 
             generateCalendar(currentYear, currentMonth, userIdInput.value, [], [], []);
         });
+        function getMonthName(monthIndex) {
+    const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+    return months[monthIndex];
+}
     </script>
 </body>
 
