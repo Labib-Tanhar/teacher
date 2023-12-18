@@ -87,7 +87,6 @@
     margin: 0 10px;
     width: 60px; /* Adjust the width to make the buttons square */
     height: 60px; /* Adjust the height to make the buttons square */
-    border: none;
     border-radius: 5px; /* Optional: Add border-radius for a rounded look */
     font-size: 28px;
     }
@@ -122,14 +121,20 @@
     #presenceBtn {
         background-color:#c6efce;
         color: #257246;
+        border: none;
     }
     #absenceBtn {
         background-color:#ffc7ce;
         color: #c83552;
+        border: none;
     }
     #lateBtn {
         background-color: #ffeb9c;
         color: #a56c34;
+        border: none;
+    }
+    #neutralBtn {
+        background-color: #fff;
     }
   </style>
 </head>
@@ -145,6 +150,7 @@
     <button id="presenceBtn"><i class="material-symbols-rounded">verified</i></button>
     <button id="absenceBtn"><i class="material-symbols-rounded">block</i></button>
     <button id="lateBtn"><i class="material-symbols-rounded">report</i></button>
+    <button id="neutralBtn"><i class="material-symbols-rounded">do_not_disturb_on</i></button>
   </div>
   <div id="calendarHeader">
    
@@ -189,9 +195,10 @@
         var presenceBtn = document.getElementById("presenceBtn");
         var absenceBtn = document.getElementById("absenceBtn");
         var lateBtn = document.getElementById("lateBtn");
+        var neutralBtn = document.getElementById("neutralBtn");
         var currentYear = new Date().getFullYear();
         var currentMonth = new Date().getMonth();
-        var activeStatus = 0; // 0: Presence, 1: Absence, 2: Late
+        var activeStatus = 0; // 0: Presence, 1: Absence, 2: Late, 3: Neutral
 
         loadDataBtn.addEventListener("click", function () {
             var userId = userIdInput.value;
@@ -243,45 +250,42 @@
             }
 
             generateCalendarBody() {
-    document.getElementById("calendarBody").innerHTML = "";
+                document.getElementById("calendarBody").innerHTML = "";
 
-    for (let i = 0; i < 6; i++) {
-        const row = document.createElement("tr");
+                for (let i = 0; i < 6; i++) {
+                    const row = document.createElement("tr");
 
-        for (let j = 0; j < 7; j++) {
-            const date = i * 7 + j + 1 - this.firstDay;
+                    for (let j = 0; j < 7; j++) {
+                        const date = i * 7 + j + 1 - this.firstDay;
 
-            if (date < 1 || date > this.daysInMonth) {
-                const cell = document.createElement("td");
-                row.appendChild(cell);
-                continue;
+                        if (date < 1 || date > this.daysInMonth) {
+                            const cell = document.createElement("td");
+                            row.appendChild(cell);
+                            continue;
+                        }
+
+                        const cell = document.createElement("td");
+                        cell.textContent = date;
+
+                        if (this.isLate(new Date(this.year, this.month, date))) {
+                            cell.classList.add("late");
+                        } else if (this.isAbsent(new Date(this.year, this.month, date))) {
+                            cell.classList.add("absent");
+                        } else if (this.isPresent(new Date(this.year, this.month, date))) {
+                            cell.classList.add("present");
+                        }
+
+                        if (this.isSameDate(new Date(), new Date(this.year, this.month, date))) {
+                            // Change text color to blue for the current date
+                            cell.style.color = "#000";
+                        }
+
+                        row.appendChild(cell);
+                    }
+
+                    document.getElementById("calendarBody").appendChild(row);
+                }
             }
-
-            const cell = document.createElement("td");
-            cell.textContent = date;
-
-            if (this.isLate(new Date(this.year, this.month, date))) {
-                cell.classList.add("late");
-            } else if (this.isAbsent(new Date(this.year, this.month, date))) {
-                cell.classList.add("absent");
-            } else if (this.isPresent(new Date(this.year, this.month, date))) {
-                cell.classList.add("present");
-            }
-
-            if (this.isSameDate(new Date(), new Date(this.year, this.month, date))) {
-    // Change text color to blue for the current date
-    cell.style.color = "#fff";
-}
-
-
-
-            row.appendChild(cell);
-        }
-
-        document.getElementById("calendarBody").appendChild(row);
-    }
-}
-
 
             isPresent(date) {
                 return this.presenceDates.some(presenceDate => this.isSameDate(presenceDate, date));
@@ -310,37 +314,41 @@
         }
 
         function generateCalendar(year, month, userId, presenceDates, absenceDates, lateDates) {
-    const calendar = new Calendar(year, month, userId, presenceDates, absenceDates, lateDates);
-    document.getElementById('year').textContent = getMonthName(calendar.month) + ' ' + calendar.year;
-    calendar.generateCalendarBody();
-}
-
-
-        function markAttendance(date, status) {
-        const userId = userIdInput.value;
-
-        if (!userId) {
-            console.error("User ID is not set");
-            return;
+            const calendar = new Calendar(year, month, userId, presenceDates, absenceDates, lateDates);
+            document.getElementById('year').textContent = getMonthName(calendar.month) + ' ' + calendar.year;
+            calendar.generateCalendarBody();
         }
 
-        const docId = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${date.toString().padStart(2, '0')}`;
-        const collectionName = getCollectionName(status);
+        function markAttendance(date, status) {
+            const userId = userIdInput.value;
 
-        // Delete existing data for the date
-        db.collection("users").doc(userId).collection("presences").doc(docId).delete();
-        db.collection("users").doc(userId).collection("absences").doc(docId).delete();
-        db.collection("users").doc(userId).collection("lates").doc(docId).delete();
+            if (!userId) {
+                console.error("User ID is not set");
+                return;
+            }
 
-        // Save the new status
-        db.collection("users").doc(userId).collection(collectionName).doc(docId).set({
-            date: firebase.firestore.Timestamp.fromDate(new Date(currentYear, currentMonth, date))
-        }).then(() => {
-            loadDataBtn.click(); // Refresh the calendar after marking attendance
-        }).catch(error => {
-            console.error("Error marking attendance:", error);
-        });
-    }
+            const docId = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${date.toString().padStart(2, '0')}`;
+            const collectionName = getCollectionName(status);
+
+            // Delete existing data for the date
+            db.collection("users").doc(userId).collection("presences").doc(docId).delete();
+            db.collection("users").doc(userId).collection("absences").doc(docId).delete();
+            db.collection("users").doc(userId).collection("lates").doc(docId).delete();
+
+            // Save the new status if it's not neutral
+            if (status !== 3) {
+                db.collection("users").doc(userId).collection(collectionName).doc(docId).set({
+                    date: firebase.firestore.Timestamp.fromDate(new Date(currentYear, currentMonth, date))
+                }).then(() => {
+                    loadDataBtn.click(); // Refresh the calendar after marking attendance
+                }).catch(error => {
+                    console.error("Error marking attendance:", error);
+                });
+            } else {
+                loadDataBtn.click(); // Refresh the calendar for neutral status without saving in a collection
+            }
+        }
+
         function getCollectionName(status) {
             const collections = ['presences', 'absences', 'lates'];
             return collections[status];
@@ -367,6 +375,10 @@
             activeStatus = 2;
         });
 
+        neutralBtn.addEventListener("click", function () {
+            activeStatus = 3;
+        });
+
         document.getElementById("prevBtn").addEventListener("click", function () {
             currentMonth--;
 
@@ -388,13 +400,14 @@
 
             generateCalendar(currentYear, currentMonth, userIdInput.value, [], [], []);
         });
+
         function getMonthName(monthIndex) {
-    const months = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ];
-    return months[monthIndex];
-}
+            const months = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            return months[monthIndex];
+        }
     </script>
 </body>
 
