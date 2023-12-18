@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Attendance Calendar</title>
+    <style>
+@import url('https://fonts.googleapis.com/css2?family=Readex+Pro:wght@500&display=swap');
+.present {
+    background-color: #4CAF50; /* Green */
+    color: #fff; /* White text */
+}
+
+.absent {
+    background-color: #FF5252; /* Red */
+    color: #fff; /* White text */
+}
+
+.late {
+    background-color: #FFC107; /* Yellow */
+    color: #fff; /* White text */
+}
+
+.absence {
+    color: #FF5252; /* Red */
+}
+
+.attendance {
+    color: #4CAF50; /* Green */
+}
+
+body {
+    font-family: 'Readex Pro', sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    justify-content: center;
+}
+
+#calendarContainer {
+    border: 2px solid #fff;
+    border-radius: 10px; /* Add border radius to the calendar container */
+    box-sizing: border-box;
+    overflow: hidden;
+    width: 90%; /* Adjust the width to free up space on both sides */
+    max-width: 600px;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    border: 1px solid #fff;
+    border-width: 7px;
+    text-align: center;
+    padding: 0; /* Remove padding */
+    width: calc(100% / 7); /* Distribute the cells equally */
+    height: 135px; /* Set the height to create square cells */
+    position: relative;
+    border-radius: 25px; /* Add border radius to the cells */
+    font-size: 30px;
+    
+}
+
+th {
+    background-color: #fff;
+    border-width: 2px; /* Increase border thickness for th elements */
+}
+
+th span, td span {
+    display: inline-block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+    </style>
+</head>
+
+<body>
+    <h1>Attendance Calendar</h1>
+
+    <label for="userIdInput">User ID:</label>
+    <input type="text" id="userIdInput">
+    <button id="loadDataBtn">Load Attendance Data</button>
+
+    <button id="presenceBtn">Mark Presence</button>
+    <button id="absenceBtn">Mark Absence</button>
+    <button id="lateBtn">Mark Late</button>
+
+    <button id="prevBtn">Previous</button>
+    <button id="nextBtn">Next</button>
+    <p id="year"></p>
+    <table>
+        <thead>
+            <tr>
+                <th>Sun</th>
+                <th>Mon</th>
+                <th>Tue</th>
+                <th>Wed</th>
+                <th>Thu</th>
+                <th>Fri</th>
+                <th>Sat</th>
+            </tr>
+        </thead>
+        <tbody id="calendarBody">
+        </tbody>
+    </table>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script>
+        var firebaseConfig = {
+            apiKey: "AIzaSyBhDyy-uWtvbZSnQrCFFubX02CwznIPYp8",
+            authDomain: "bac-2012.firebaseapp.com",
+            projectId: "bac-2012",
+            storageBucket: "bac-2012.appspot.com",
+            messagingSenderId: "1080877923320",
+            appId: "1:1080877923320:web:41d0cfb6b3cb7da530740d",
+            measurementId: "G-75BX9SCCLV"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        var db = firebase.firestore();
+        var userIdInput = document.getElementById("userIdInput");
+        var loadDataBtn = document.getElementById("loadDataBtn");
+        var presenceBtn = document.getElementById("presenceBtn");
+        var absenceBtn = document.getElementById("absenceBtn");
+        var lateBtn = document.getElementById("lateBtn");
+        var currentYear = new Date().getFullYear();
+        var currentMonth = new Date().getMonth();
+        var activeStatus = 0; // 0: Presence, 1: Absence, 2: Late
+
+        loadDataBtn.addEventListener("click", function () {
+            var userId = userIdInput.value;
+
+            if (!userId) {
+                console.error("User ID is not set");
+                return;
+            }
+
+            var presenceDates = [];
+            var absenceDates = [];
+            var lateDates = [];
+
+            var promises = [
+                db.collection("users").doc(userId).collection("presences").get(),
+                db.collection("users").doc(userId).collection("absences").get(),
+                db.collection("users").doc(userId).collection("lates").get()
+            ];
+
+            Promise.all(promises).then(([presenceSnapshot, absenceSnapshot, lateSnapshot]) => {
+                presenceSnapshot.forEach((doc) => {
+                    presenceDates.push(new Date(doc.id));
+                });
+
+                absenceSnapshot.forEach((doc) => {
+                    absenceDates.push(new Date(doc.id));
+                });
+
+                lateSnapshot.forEach((doc) => {
+                    lateDates.push(new Date(doc.id));
+                });
+
+                generateCalendar(currentYear, currentMonth, userId, presenceDates, absenceDates, lateDates);
+            }).catch((error) => {
+                console.error("Error loading data:", error);
+            });
+        });
+
+        class Calendar {
+            constructor(year, month, userId, presenceDates = [], absenceDates = [], lateDates = []) {
+                this.year = year;
+                this.month = month;
+                this.userId = userId;
+                this.presenceDates = presenceDates.map(date => this.convertToDate(date));
+                this.absenceDates = absenceDates.map(date => this.convertToDate(date));
+                this.lateDates = lateDates.map(date => this.convertToDate(date));
+                this.daysInMonth = new Date(year, month + 1, 0).getDate();
+                this.firstDay = new Date(year, month, 1).getDay();
+            }
+
+            generateCalendarBody() {
+    document.getElementById("calendarBody").innerHTML = "";
+
+    for (let i = 0; i < 6; i++) {
+        const row = document.createElement("tr");
+
+        for (let j = 0; j < 7; j++) {
+            const date = i * 7 + j + 1 - this.firstDay;
+
+            if (date < 1 || date > this.daysInMonth) {
+                const cell = document.createElement("td");
+                row.appendChild(cell);
+                continue;
+            }
+
+            const cell = document.createElement("td");
+            cell.textContent = date;
+
+            if (this.isLate(new Date(this.year, this.month, date))) {
+                cell.classList.add("late");
+            } else if (this.isAbsent(new Date(this.year, this.month, date))) {
+                cell.classList.add("absent");
+            } else if (this.isPresent(new Date(this.year, this.month, date))) {
+                cell.classList.add("present");
+            }
+
+            if (this.isSameDate(new Date(), new Date(this.year, this.month, date))) {
+    // Change text color to blue for the current date
+    cell.style.color = "blue";
+}
+
+
+
+            row.appendChild(cell);
+        }
+
+        document.getElementById("calendarBody").appendChild(row);
+    }
+}
+
+
+            isPresent(date) {
+                return this.presenceDates.some(presenceDate => this.isSameDate(presenceDate, date));
+            }
+
+            isAbsent(date) {
+                return this.absenceDates.some(absenceDate => this.isSameDate(absenceDate, date));
+            }
+
+            isLate(date) {
+                return this.lateDates.some(lateDate => this.isSameDate(lateDate, date));
+            }
+
+            isSameDate(date1, date2) {
+                return date1.getFullYear() === date2.getFullYear() &&
+                    date1.getMonth() === date2.getMonth() &&
+                    date1.getDate() === date2.getDate();
+            }
+
+            convertToDate(date) {
+                if (date.toDate) {
+                    return date.toDate();
+                }
+                return date;
+            }
+        }
+
+        function generateCalendar(year, month, userId, presenceDates, absenceDates, lateDates) {
+            const calendar = new Calendar(year, month, userId, presenceDates, absenceDates, lateDates);
+            document.getElementById('year').textContent = 'Year: ' + calendar.year;
+            calendar.generateCalendarBody();
+        }
+
+        function markAttendance(date, status) {
+        const userId = userIdInput.value;
+
+        if (!userId) {
+            console.error("User ID is not set");
+            return;
+        }
+
+        const docId = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${date.toString().padStart(2, '0')}`;
+        const collectionName = getCollectionName(status);
+
+        // Delete existing data for the date
+        db.collection("users").doc(userId).collection("presences").doc(docId).delete();
+        db.collection("users").doc(userId).collection("absences").doc(docId).delete();
+        db.collection("users").doc(userId).collection("lates").doc(docId).delete();
+
+        // Save the new status
+        db.collection("users").doc(userId).collection(collectionName).doc(docId).set({
+            date: firebase.firestore.Timestamp.fromDate(new Date(currentYear, currentMonth, date))
+        }).then(() => {
+            loadDataBtn.click(); // Refresh the calendar after marking attendance
+        }).catch(error => {
+            console.error("Error marking attendance:", error);
+        });
+    }
+        function getCollectionName(status) {
+            const collections = ['presences', 'absences', 'lates'];
+            return collections[status];
+        }
+
+        document.getElementById("calendarBody").addEventListener("click", function (event) {
+            const target = event.target;
+
+            if (target.tagName === "TD") {
+                const date = parseInt(target.textContent);
+                markAttendance(date, activeStatus);
+            }
+        });
+
+        presenceBtn.addEventListener("click", function () {
+            activeStatus = 0;
+        });
+
+        absenceBtn.addEventListener("click", function () {
+            activeStatus = 1;
+        });
+
+        lateBtn.addEventListener("click", function () {
+            activeStatus = 2;
+        });
+
+        document.getElementById("prevBtn").addEventListener("click", function () {
+            currentMonth--;
+
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+
+            generateCalendar(currentYear, currentMonth, userIdInput.value, [], [], []);
+        });
+
+        document.getElementById("nextBtn").addEventListener("click", function () {
+            currentMonth++;
+
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+
+            generateCalendar(currentYear, currentMonth, userIdInput.value, [], [], []);
+        });
+    </script>
+</body>
+
+</html>
